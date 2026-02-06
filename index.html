@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <title>Veja em Tamanho Real</title>
+
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+    }
+
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Área do modelo 3D - ocupa tela toda */
+    .viewer-area {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(ellipse at center, #1a1a1a 0%, #000 100%);
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      --poster-color: transparent;
+      --progress-bar-color: #ff9500;
+    }
+
+    /* Melhora renderização */
+    model-viewer#viewer {
+      background: radial-gradient(ellipse at center bottom, #2a2a2a 0%, #0a0a0a 100%);
+    }
+
+    model-viewer::part(default-ar-button) {
+      display: none;
+    }
+
+    /* Indicador de gesto */
+    .gesture-hint {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+      opacity: 1;
+      transition: opacity 0.5s;
+    }
+
+    .gesture-hint.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .gesture-hint svg {
+      width: 20px;
+      height: 20px;
+      animation: rotate-hint 2s ease-in-out infinite;
+    }
+
+    @keyframes rotate-hint {
+      0%, 100% { transform: rotate(-15deg); }
+      50% { transform: rotate(15deg); }
+    }
+
+    /* Painel inferior fixo */
+    .bottom-panel {
+      background: #000;
+      padding: 20px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .product-info {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .product-name {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .product-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* Botão AR principal */
+    .btn-ar {
+      width: 100%;
+      padding: 18px 24px;
+      border: none;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #ff9500 0%, #ff5e00 100%);
+      color: #000;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(255, 149, 0, 0.4);
+    }
+
+    .btn-ar:active {
+      transform: scale(0.98);
+    }
+
+    .btn-ar svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .btn-ar:disabled {
+      background: #333;
+      color: #666;
+      box-shadow: none;
+    }
+
+    /* Loading state */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.4s;
+    }
+
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255,149,0,0.2);
+      border-top-color: #ff9500;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 16px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Instrução AR overlay */
+    .ar-instruction {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .ar-instruction.show {
+      display: flex;
+    }
+
+    .ar-instruction h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+    }
+
+    .ar-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .ar-step {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-align: left;
+    }
+
+    .ar-step-num {
+      width: 36px;
+      height: 36px;
+      background: #ff9500;
+      color: #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .ar-step-text {
+      font-size: 16px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .btn-start-ar {
+      width: 100%;
+      max-width: 300px;
+      padding: 18px;
+      border: none;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      background: #ff9500;
+      color: #000;
+      cursor: pointer;
+    }
+
+    .btn-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Fallback para dispositivos sem AR */
+    .no-ar-message {
+      display: none;
+      text-align: center;
+      padding: 16px;
+      background: rgba(255,100,100,0.1);
+      border-radius: 12px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #ff6b6b;
+    }
+
+    .no-ar .no-ar-message {
+      display: block;
+    }
+
+    .no-ar .btn-ar {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loading">
+  <div class="loader"></div>
+  <div class="loading-text">Carregando modelo 3D...</div>
+</div>
+
+<!-- Instrução AR -->
+<div class="ar-instruction" id="arInstruction">
+  <button class="btn-close" onclick="closeInstruction()">&times;</button>
+  <h2>Como visualizar em AR</h2>
+  <div class="ar-steps">
+    <div class="ar-step">
+      <span class="ar-step-num">1</span>
+      <span class="ar-step-text">Aponte a câmera para uma superfície plana (mesa, chão)</span>
+    </div>
+    <div class="ar-step">
+      <span class="ar-step-num">2</span>
+      <span class="ar-step-text">Mova o celular lentamente para detectar o espaço</span>
+    </div>
+    <div class="ar-step">
+      <span class="ar-step-num">3</span>
+      <span class="ar-step-text">Toque na tela para posicionar o hambúrguer</span>
+    </div>
+  </div>
+  <button class="btn-start-ar" onclick="startAR()">INICIAR CÂMERA AR</button>
+</div>
+
+<!-- Conteúdo principal -->
+<div class="container" id="mainContainer">
+
+  <div class="viewer-area">
+    <model-viewer
+      id="viewer"
+      src="hamburguer.glb"
+      ar
+      ar-modes="scene-viewer webxr quick-look"
+      ar-scale="fixed"
+      camera-controls
+      touch-action="pan-y"
+      auto-rotate
+      rotation-per-second="20deg"
+      camera-orbit="0deg 70deg 0.3m"
+      min-camera-orbit="auto auto 0.15m"
+      max-camera-orbit="auto auto 0.8m"
+      field-of-view="45deg"
+      shadow-intensity="1.2"
+      shadow-softness="0.8"
+      exposure="1.0"
+      environment-image="neutral"
+      interaction-prompt="none"
+    ></model-viewer>
+
+    <div class="gesture-hint" id="gestureHint">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/>
+      </svg>
+      Arraste para girar
+    </div>
+  </div>
+
+  <div class="bottom-panel">
+    <div class="product-info">
+      <div class="product-name">Hambúrguer Artesanal</div>
+      <div class="product-desc">Veja o tamanho real antes de pedir</div>
+    </div>
+
+    <button class="btn-ar" id="btnAR" onclick="showInstruction()">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 4v6h2V6h4V4H3zm18 0h-6v2h4v4h2V4zM3 20v-6h2v4h4v2H3zm18 0h-6v-2h4v-4h2v6zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+      </svg>
+      VER EM TAMANHO REAL
+    </button>
+
+    <div class="no-ar-message">
+      AR não disponível neste dispositivo. Use Android com Chrome ou iPhone com Safari.
+    </div>
+  </div>
+</div>
+
+<script>
+const viewer = document.getElementById('viewer');
+const loading = document.getElementById('loading');
+const gestureHint = document.getElementById('gestureHint');
+const btnAR = document.getElementById('btnAR');
+const arInstruction = document.getElementById('arInstruction');
+const mainContainer = document.getElementById('mainContainer');
+
+// Dimensões reais desejadas (em metros)
+const TARGET_DIAMETER = 0.10; // 10cm
+const TARGET_HEIGHT = 0.07;   // 7cm
+
+// Quando modelo carrega
+viewer.addEventListener('load', () => {
+  loading.classList.add('hidden');
+
+  // Pega dimensões originais do modelo
+  const dimensions = viewer.getDimensions();
+  console.log('Dimensões originais (m):', dimensions);
+
+  // Calcula a escala necessária
+  // X e Z são o diâmetro, Y é a altura
+  const currentDiameter = Math.max(dimensions.x, dimensions.z);
+  const currentHeight = dimensions.y;
+
+  // Calcula fator de escala para cada dimensão
+  const scaleDiameter = TARGET_DIAMETER / currentDiameter;
+  const scaleHeight = TARGET_HEIGHT / currentHeight;
+
+  // Usa a menor escala para manter proporção, ou escala uniforme
+  const uniformScale = Math.min(scaleDiameter, scaleHeight);
+
+  console.log('Escala calculada:', uniformScale);
+
+  // Aplica a escala ao modelo
+  viewer.scale = `${uniformScale} ${uniformScale} ${uniformScale}`;
+
+  // Ajusta câmera para o novo tamanho
+  viewer.cameraOrbit = '0deg 70deg 0.25m';
+  viewer.minCameraOrbit = 'auto auto 0.12m';
+  viewer.maxCameraOrbit = 'auto auto 0.5m';
+
+  // Verifica suporte AR
+  setTimeout(() => {
+    if (!viewer.canActivateAR) {
+      mainContainer.classList.add('no-ar');
+    }
+  }, 500);
+});
+
+// Esconde dica de gesto após interação
+viewer.addEventListener('camera-change', () => {
+  gestureHint.classList.add('hidden');
+}, { once: true });
+
+// Mostra instrução
+function showInstruction() {
+  if (viewer.canActivateAR) {
+    arInstruction.classList.add('show');
+  }
+}
+
+// Fecha instrução
+function closeInstruction() {
+  arInstruction.classList.remove('show');
+}
+
+// Inicia AR
+function startAR() {
+  arInstruction.classList.remove('show');
+  if (viewer.canActivateAR) {
+    viewer.activateAR();
+  }
+}
+
+// Fallback - clique direto se já usou antes
+let arUsed = localStorage.getItem('arUsed');
+if (arUsed) {
+  btnAR.onclick = () => {
+    if (viewer.canActivateAR) {
+      viewer.activateAR();
+    }
+  };
+}
+
+// Marca que usou AR
+viewer.addEventListener('ar-status', (e) => {
+  if (e.detail.status === 'session-started') {
+    localStorage.setItem('arUsed', 'true');
+  }
+});
+</script>
+
+</body>
+</html>
