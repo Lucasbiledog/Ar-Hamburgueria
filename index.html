@@ -30,7 +30,6 @@
       flex-direction: column;
     }
 
-    /* Visualizador 3D */
     .viewer {
       flex: 1;
       position: relative;
@@ -46,7 +45,6 @@
       display: none;
     }
 
-    /* Painel inferior */
     .panel {
       padding: 24px 20px;
       padding-bottom: max(24px, env(safe-area-inset-bottom));
@@ -67,7 +65,6 @@
       margin-bottom: 20px;
     }
 
-    /* Botão principal */
     .btn {
       width: 100%;
       padding: 18px;
@@ -95,7 +92,6 @@
       height: 22px;
     }
 
-    /* Loading */
     .loading {
       position: absolute;
       inset: 0;
@@ -124,7 +120,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Erro AR */
     .error {
       display: none;
       text-align: center;
@@ -147,17 +142,25 @@
       id="model"
       src="hamburguer.glb"
       ar
-      ar-modes="scene-viewer webxr quick-look"
-      ar-scale="fixed"
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      ar-placement="floor"
       camera-controls
       auto-rotate
       rotation-per-second="24deg"
-      camera-orbit="0deg 70deg auto"
-      field-of-view="45deg"
+      camera-orbit="0deg 75deg 0.5m"
+      min-camera-orbit="auto auto 0.2m"
+      max-camera-orbit="auto auto 2m"
+      field-of-view="30deg"
       shadow-intensity="1"
+      shadow-softness="1"
       environment-image="neutral"
+      exposure="1"
       interaction-prompt="none"
-    ></model-viewer>
+    >
+      <!-- Botão AR customizado dentro do model-viewer para iOS -->
+      <button slot="ar-button" style="display:none"></button>
+    </model-viewer>
     <div class="loading" id="loading">
       <div class="spinner"></div>
     </div>
@@ -167,7 +170,7 @@
     <div class="title">Hambúrguer Artesanal</div>
     <div class="subtitle">Toque para ver na sua mesa</div>
 
-    <button class="btn" id="btn" onclick="abrirAR()">
+    <button class="btn" id="btn">
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M3 4v6h2V6h4V4H3zm18 0h-6v2h4v4h2V4zM3 20v-6h2v4h4v2H3zm18 0h-6v-2h4v-4h2v6zM12 8a4 4 0 100 8 4 4 0 000-8z"/>
       </svg>
@@ -175,7 +178,7 @@
     </button>
 
     <div class="error">
-      Use o navegador Chrome (Android) ou Safari (iPhone)
+      Use Chrome (Android) ou Safari (iPhone)
     </div>
   </div>
 </div>
@@ -184,33 +187,36 @@
 const model = document.getElementById('model');
 const loading = document.getElementById('loading');
 const app = document.getElementById('app');
+const btn = document.getElementById('btn');
 
-// Tamanho real: 10cm diâmetro, 7cm altura
-const DIAMETRO = 0.10;
-const ALTURA = 0.07;
-
+// Quando carrega
 model.addEventListener('load', () => {
-  // Esconde loading
   loading.classList.add('hide');
 
-  // Ajusta escala para tamanho real
+  // Mostra dimensões para debug
   const dim = model.getDimensions();
-  const escala = Math.min(DIAMETRO / Math.max(dim.x, dim.z), ALTURA / dim.y);
-  model.scale = `${escala} ${escala} ${escala}`;
+  console.log('Dimensões do modelo (metros):', dim);
+  console.log('Largura:', dim.x, 'Altura:', dim.y, 'Profundidade:', dim.z);
 
   // Verifica AR
   setTimeout(() => {
     if (!model.canActivateAR) {
       app.classList.add('no-ar');
     }
-  }, 300);
+  }, 500);
 });
 
-function abrirAR() {
+// Botão AR
+btn.addEventListener('click', () => {
   if (model.canActivateAR) {
     model.activateAR();
   }
-}
+});
+
+// Monitora status do AR
+model.addEventListener('ar-status', (e) => {
+  console.log('AR Status:', e.detail.status);
+});
 </script>
 
 </body>
