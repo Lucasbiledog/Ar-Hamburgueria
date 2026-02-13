@@ -106,21 +106,21 @@
       id="model"
       src="burger.glb"
       ar
-      ar-modes="scene-viewer quick-look"
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="fixed"
       ar-placement="floor"
       camera-controls
       auto-rotate
       rotation-per-second="24deg"
-      camera-orbit="0deg 75deg 0.25m"
-      min-camera-orbit="auto auto 0.1m"
-      max-camera-orbit="auto auto 1m"
-      field-of-view="30deg"
+      camera-orbit="0deg 75deg auto"
+      field-of-view="45deg"
       shadow-intensity="1"
       shadow-softness="1"
       environment-image="neutral"
       exposure="1"
       interaction-prompt="none"
     >
+      <button slot="ar-button" style="display:none"></button>
     </model-viewer>
     <div class="loading" id="loading">
       <div class="spinner"></div>
