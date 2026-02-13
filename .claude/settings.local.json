@@ -4,7 +4,11 @@
       "Bash(ren:*)",
       "WebSearch",
       "WebFetch(domain:ajax.googleapis.com)",
-      "WebFetch(domain:cdn.jsdelivr.net)"
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "Bash(ls:*)",
+      "Bash(gh api:*)",
+      "Bash(git status:*)",
+      "WebFetch(domain:lucasbiledog.github.io)"
     ]
   }
 }
