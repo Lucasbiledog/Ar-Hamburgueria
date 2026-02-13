@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(ren:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:ajax.googleapis.com)",
+      "WebFetch(domain:cdn.jsdelivr.net)"
     ]
   }
 }
