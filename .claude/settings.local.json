@@ -8,7 +8,11 @@
       "Bash(ls:*)",
       "Bash(gh api:*)",
       "Bash(git status:*)",
-      "WebFetch(domain:lucasbiledog.github.io)"
+      "WebFetch(domain:lucasbiledog.github.io)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nSimplifica pagina - volta ao basico para funcionar\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
