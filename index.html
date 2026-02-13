@@ -78,6 +78,24 @@
       animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    #debug {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 40vh;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.9);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 8px;
+      z-index: 9999;
+      border-top: 1px solid #333;
+    }
+    #debug p { margin: 2px 0; border-bottom: 1px solid #222; padding: 2px 0; }
+    #debug .err { color: #f55; }
   </style>
 </head>
 <body>
@@ -124,22 +142,73 @@
   </div>
 </div>
 
+<div id="debug"></div>
+
 <script>
+// === DEBUG PANEL - captura todos os logs na tela ===
+const debugEl = document.getElementById('debug');
+function log(msg, isError) {
+  const p = document.createElement('p');
+  if (isError) p.className = 'err';
+  p.textContent = new Date().toLocaleTimeString() + ' | ' + msg;
+  debugEl.appendChild(p);
+  debugEl.scrollTop = debugEl.scrollHeight;
+}
+const _log = console.log;
+const _err = console.error;
+const _warn = console.warn;
+console.log = (...args) => { _log(...args); log(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')); };
+console.error = (...args) => { _err(...args); log(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), true); };
+console.warn = (...args) => { _warn(...args); log('WARN: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')); };
+window.addEventListener('error', (e) => { log('ERRO: ' + e.message + ' | ' + e.filename + ':' + e.lineno, true); });
+window.addEventListener('unhandledrejection', (e) => { log('PROMISE ERRO: ' + e.reason, true); });
+
+// === APP ===
 const model = document.getElementById('model');
 const loading = document.getElementById('loading');
 const btn = document.getElementById('btn');
 
+console.log('Página carregada');
+console.log('ar-modes: ' + model.getAttribute('ar-modes'));
+console.log('ar-scale: ' + model.getAttribute('ar-scale'));
+console.log('scale: ' + model.getAttribute('scale'));
+console.log('src: ' + model.getAttribute('src'));
+
 model.addEventListener('load', () => {
   loading.classList.add('hide');
+  const dim = model.getDimensions();
+  console.log('Modelo carregado!');
+  console.log('Dimensões (m): ' + dim.x.toFixed(4) + ' x ' + dim.y.toFixed(4) + ' x ' + dim.z.toFixed(4));
+  console.log('canActivateAR: ' + model.canActivateAR);
+});
+
+model.addEventListener('error', (e) => {
+  console.error('Erro ao carregar modelo: ' + e.detail?.type + ' ' + e.detail?.sourceError);
+});
+
+model.addEventListener('ar-status', (e) => {
+  console.log('AR Status: ' + e.detail.status);
+});
+
+model.addEventListener('ar-tracking', (e) => {
+  console.log('AR Tracking: ' + e.detail.status);
 });
 
 // Fallback: esconde loading após 5s
-setTimeout(() => { loading.classList.add('hide'); }, 5000);
+setTimeout(() => {
+  loading.classList.add('hide');
+  console.log('canActivateAR (5s): ' + model.canActivateAR);
+}, 5000);
 
-// Botão AR - tenta de tudo
+// Botão AR
 btn.addEventListener('click', () => {
-  // Tenta o AR nativo do model-viewer
-  model.activateAR();
+  console.log('Botão clicado! canActivateAR: ' + model.canActivateAR);
+  try {
+    model.activateAR();
+    console.log('activateAR() chamado');
+  } catch(e) {
+    console.error('Erro activateAR: ' + e.message);
+  }
 });
 </script>
 
