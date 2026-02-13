@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#000000">
   <title>Veja o Tamanho Real</title>
 
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 
   <style>
     * {
@@ -150,24 +150,22 @@
       id="model"
       src="modelo.glb"
       ar
-      ar-modes="webxr scene-viewer quick-look"
-      ar-scale="fixed"
+      ar-modes="scene-viewer webxr quick-look"
+      ar-scale="auto"
       ar-placement="floor"
       camera-controls
+      touch-action="pan-y"
       auto-rotate
       rotation-per-second="24deg"
       camera-orbit="0deg 75deg auto"
-      min-camera-orbit="auto auto auto"
-      max-camera-orbit="auto auto auto"
       field-of-view="45deg"
       shadow-intensity="1"
       shadow-softness="1"
       environment-image="neutral"
       exposure="1"
       interaction-prompt="none"
+      xr-environment
     >
-      <!-- Botão AR customizado dentro do model-viewer para iOS -->
-      <button slot="ar-button" style="display:none"></button>
     </model-viewer>
     <div class="loading" id="loading">
       <div class="spinner"></div>
@@ -202,7 +200,6 @@ model.addEventListener('load', () => {
   // Esconde loading e anima o modelo surgindo suavemente
   loading.classList.add('hide');
 
-  // Pequeno delay para garantir transição suave
   requestAnimationFrame(() => {
     model.classList.add('visible');
   });
@@ -211,26 +208,30 @@ model.addEventListener('load', () => {
   const dim = model.getDimensions();
   console.log('Dimensões do modelo (metros):', dim);
   console.log('Largura:', dim.x, 'Altura:', dim.y, 'Profundidade:', dim.z);
-
-  // Verifica AR
-  setTimeout(() => {
-    if (!model.canActivateAR) {
-      app.classList.add('no-ar');
-    }
-  }, 500);
 });
 
-// Botão AR
-btn.addEventListener('click', () => {
-  if (model.canActivateAR) {
-    model.activateAR();
-  }
-});
-
-// Monitora status do AR
+// Verifica suporte AR quando o componente estiver pronto
 model.addEventListener('ar-status', (e) => {
   console.log('AR Status:', e.detail.status);
 });
+
+// Botão AR - tenta ativar diretamente
+btn.addEventListener('click', async () => {
+  try {
+    await model.activateAR();
+  } catch (e) {
+    console.log('AR não disponível:', e);
+    app.classList.add('no-ar');
+  }
+});
+
+// Fallback: se após 2s o AR não estiver disponível, mostra erro
+setTimeout(() => {
+  if (!model.canActivateAR) {
+    console.log('AR não suportado neste dispositivo/navegador');
+    app.classList.add('no-ar');
+  }
+}, 2000);
 </script>
 
 </body>
