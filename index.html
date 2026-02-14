@@ -10,6 +10,8 @@
   <meta http-equiv="Expires" content="0">
   <title>Veja o Tamanho Real</title>
 
+  <!-- Preload do modelo para carregar mais rapido -->
+  <link rel="preload" href="burger.glb" as="fetch" crossorigin>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
   <style>
@@ -29,8 +31,8 @@
       height: 100%;
       background: radial-gradient(circle at 50% 100%, #1a1a1a, #000);
       opacity: 0;
-      transform: scale(0.85) translateY(20px);
-      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      transform: scale(0.9) translateY(15px);
+      transition: opacity 1s ease-out, transform 1s cubic-bezier(0.16, 1, 0.3, 1);
     }
     model-viewer.visible {
       opacity: 1;
@@ -42,8 +44,8 @@
       padding-bottom: max(24px, env(safe-area-inset-bottom));
       background: #000;
       opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.6s ease-out 0.3s, transform 0.6s ease-out 0.3s;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
     }
     .panel.visible {
       opacity: 1;
@@ -68,30 +70,45 @@
       background: #ff9500;
       color: #000;
       -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s, opacity 0.15s;
     }
-    .btn:active { transform: scale(0.98); opacity: 0.9; }
+    .btn:active { transform: scale(0.97); opacity: 0.85; }
     .btn svg { width: 22px; height: 22px; }
 
+    /* Loading com barra de progresso */
     .loading {
       position: absolute;
       inset: 0;
       background: #000;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 16px;
       transition: opacity 0.5s ease-out;
     }
     .loading.hide { opacity: 0; pointer-events: none; }
 
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #333;
-      border-top-color: #ff9500;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+    .loading-text {
+      font-size: 13px;
+      color: #888;
+      letter-spacing: 0.5px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-bar {
+      width: 120px;
+      height: 3px;
+      background: #222;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #ff9500;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.3s ease-out;
+    }
   </style>
 </head>
 <body>
@@ -102,6 +119,7 @@
       id="model"
       src="burger.glb"
       ios-src="Burger.usdz"
+      loading="eager"
       ar
       ar-modes="webxr scene-viewer quick-look"
       ar-scale="fixed"
@@ -120,7 +138,10 @@
       <button slot="ar-button" style="display:none"></button>
     </model-viewer>
     <div class="loading" id="loading">
-      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">Carregando...</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress"></div>
+      </div>
     </div>
   </div>
 
@@ -140,24 +161,42 @@
 <script>
 const model = document.getElementById('model');
 const loading = document.getElementById('loading');
+const progress = document.getElementById('progress');
+const loadingText = document.getElementById('loading-text');
 const panel = document.getElementById('panel');
 const btn = document.getElementById('btn');
 
-model.addEventListener('load', () => {
-  loading.classList.add('hide');
-  requestAnimationFrame(() => {
-    model.classList.add('visible');
-    panel.classList.add('visible');
-  });
+// Barra de progresso durante carregamento
+model.addEventListener('progress', (e) => {
+  const pct = Math.round(e.detail.totalProgress * 100);
+  progress.style.width = pct + '%';
+  if (pct < 100) {
+    loadingText.textContent = pct + '%';
+  } else {
+    loadingText.textContent = 'Preparando...';
+  }
 });
 
-// Fallback: mostra tudo após 5s mesmo se load não disparar
+// Quando carrega, anima tudo suavemente
+model.addEventListener('load', () => {
+  progress.style.width = '100%';
+  setTimeout(() => {
+    loading.classList.add('hide');
+    requestAnimationFrame(() => {
+      model.classList.add('visible');
+      panel.classList.add('visible');
+    });
+  }, 200);
+});
+
+// Fallback
 setTimeout(() => {
   loading.classList.add('hide');
   model.classList.add('visible');
   panel.classList.add('visible');
-}, 5000);
+}, 8000);
 
+// Botão AR
 btn.addEventListener('click', () => {
   model.activateAR();
 });
